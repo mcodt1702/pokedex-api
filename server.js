@@ -1,7 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
-const PORT = 8000;
+const morganSetting = process.env.NODE_ENV === "production" ? "tiny" : "common";
+const PORT = process.env.PORT || 8000;
 const helmet = require("helmet");
 const cors = require("cors");
 const app = express();
@@ -31,7 +32,18 @@ const validTypes = [
 app.use(helmet());
 app.use(cors());
 
-app.use(morgan("custom"));
+app.use(morgan(morganSetting));
+
+app.use((error, req, res, next) => {
+  let response;
+  if (process.env.NODE_ENV === "production") {
+    response = { error: { message: "server error" } };
+  } else {
+    response = { error };
+  }
+  res.status(500).json(response);
+});
+
 app.use(function validateBearerToken(req, res, next) {
   const apiToken = process.env.API_TOKEN;
   const authToken = req.get("Authorization");
@@ -67,8 +79,4 @@ app.get("/pokemon", function handleGetPokemon(req, res) {
   res.json(response);
 });
 
-console.log(process.env.API_TOKEN);
-
-app.listen(PORT, () => {
-  console.log(`server listening on port ${PORT}`);
-});
+app.listen(PORT, () => {});
